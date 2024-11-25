@@ -111,51 +111,44 @@ public class MessageHandler implements HttpHandler {
 
     private JsonNode handleMessage(JsonNode message) {
         String method = message.get("method").asText();
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("jsonrpc", "2.0");
-        
-        if (message.has("id")) {
-            response.put("id", message.get("id").asInt());
-        }
+        String id = message.get("id").asText();
 
         try {
-            switch (method) {
+            return switch (method) {
                 case "resources/list" -> {
-                    ObjectNode result = response.putObject("result");
-                    var resourceArray = result.putArray("resources");
+                    ObjectNode result = objectMapper.createObjectNode();
+                    var resourceArray = objectMapper.createArrayNode();
                     resources.values().forEach(resource -> {
-                        var resourceNode = resourceArray.addObject();
+                        var resourceNode = objectMapper.createObjectNode();
                         resourceNode.put("uri", resource.uri());
                         resourceNode.put("name", resource.name());
                         resourceNode.put("mimeType", resource.mimeType());
                         if (resource.description() != null) {
                             resourceNode.put("description", resource.description());
                         }
+                        resourceArray.add(resourceNode);
                     });
+                    result.set("resources", resourceArray);
+                    yield createJsonRpcResponse(id, result);
                 }
                 case "tools/list" -> {
-                    ObjectNode result = response.putObject("result");
-                    var toolsArray = result.putArray("tools");
+                    ObjectNode result = objectMapper.createObjectNode();
+                    var toolsArray = objectMapper.createArrayNode();
                     tools.values().forEach(tool -> {
-                        var toolNode = toolsArray.addObject();
+                        var toolNode = objectMapper.createObjectNode();
                         toolNode.put("name", tool.name());
                         toolNode.put("description", tool.description());
                         toolNode.set("inputSchema", tool.inputSchema());
+                        toolsArray.add(toolNode);
                     });
+                    result.set("tools", toolsArray);
+                    yield createJsonRpcResponse(id, result);
                 }
-                default -> {
-                    ObjectNode error = response.putObject("error");
-                    error.put("code", ErrorCode.METHOD_NOT_FOUND);
-                    error.put("message", "Method not found");
-                }
-            }
+                default -> createJsonRpcError(id, ErrorCode.METHOD_NOT_FOUND, "Method not found", null);
+            };
         } catch (Exception e) {
-            ObjectNode error = response.putObject("error");
-            error.put("code", ErrorCode.INTERNAL_ERROR);
-            error.put("message", "Internal error: " + e.getMessage());
+            return createJsonRpcError(id, ErrorCode.INTERNAL_ERROR, "Internal error: " + e.getMessage(), null);
         }
-
-        return response;
     }
 
     private boolean isValidJsonRpcRequest(JsonNode request) {
@@ -167,7 +160,7 @@ public class MessageHandler implements HttpHandler {
     }
 
     private void sendError(HttpExchange exchange, int code, String message, JsonNode data) throws IOException {
-        ObjectNode errorResponse = createJsonRpcError(null, code, message, data);
+        ObjectNode errorResponse = createJsonRpcError("null", code, message, data);  // Changed null to "null"
         byte[] responseBytes = objectMapper.writeValueAsBytes(errorResponse);
         
         exchange.getResponseHeaders().set("Content-Type", "application/json");

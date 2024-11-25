@@ -76,6 +76,7 @@ public class SseHandler implements HttpHandler {
         return CompletableFuture.runAsync(() -> {
             while (!emitter.isClosed()) {
                 try {
+                    //noinspection BusyWait
                     Thread.sleep(KEEP_ALIVE_INTERVAL);
                     emitter.emit("ping", "{}");
                 } catch (InterruptedException e) {

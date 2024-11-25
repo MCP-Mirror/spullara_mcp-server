@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class McpSessionManager {
     private final Map<String, McpSession> sessions = new ConcurrentHashMap<>();
-    private static final long SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
     public record McpSession(
             String id,
@@ -31,17 +30,6 @@ public class McpSessionManager {
         if (session != null) {
             session.emitter().complete();
         }
-    }
-
-    public void cleanupExpiredSessions() {
-        long now = System.currentTimeMillis();
-        sessions.entrySet().removeIf(entry -> {
-            if (now - entry.getValue().createdAt() > SESSION_TIMEOUT_MS) {
-                entry.getValue().emitter().complete();
-                return true;
-            }
-            return false;
-        });
     }
 
     public void closeAllSessions() {

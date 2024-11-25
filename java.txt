@@ -1,0 +1,120 @@
+# Java Language Features and APIs Guide
+
+## Core Language Features
+
+### Records
+- Compact classes for immutable data
+- Automatic getters, equals, hashCode, and toString
+- Can have additional methods and constructors
+
+### Pattern Matching
+- For instanceof checks
+- For switch expressions and statements
+- Record patterns for destructuring
+- When clause in patterns
+
+### Switch Expressions
+- Return values from switch
+- Multiple case labels
+- Arrow syntax for single expressions
+- No fall-through with arrow syntax
+
+### Text Blocks
+- Multi-line string literals
+- Preserves formatting
+- \ for line continuation
+- Supports string interpolation (with String Templates)
+
+### String Templates
+- Embedded expressions in strings
+- Support for custom processors
+- Compile-time validation
+
+### Sealed Classes
+- Restrict subclass hierarchies
+- Requires permits clause
+- Subclasses must be final, sealed, or non-sealed
+
+### Type System
+- Local Variable Type Inference (var)
+- Unnamed Patterns and Variables (_)
+- Private Interface Methods
+- Module System for Large Applications
+
+## Collections and Streams
+
+### Collection Factory Methods
+```List.of()```, ```Set.of()```, ```Map.of()```
+
+### Stream API Features
+- ```takeWhile()```, ```dropWhile()```
+- ```Optional.stream()```
+- ```Collectors.teeing()```
+- Stream Gatherers
+- Parallel stream optimizations
+
+### Sequenced Collections
+- First/last element access
+- Reverse view
+- Consistent ordering guarantees
+
+## Concurrency
+
+### Virtual Threads
+- Lightweight threads for I/O operations
+- Automatic scaling
+- Platform thread interop
+
+### Structured Concurrency
+- Scope-based thread management
+- Automatic cancellation
+- Error propagation
+
+### Scoped Values
+- Thread-local state management
+- Inheritance across virtual threads
+- Automatic cleanup
+
+## Modern APIs
+
+### HTTP Client
+- HTTP/1.1 and HTTP/2 support
+- Synchronous and asynchronous APIs
+- WebSocket support
+
+### Files API
+- ```readString()```, ```writeString()```
+- ```mismatch()``` for file comparison
+- Path operations
+
+### String API
+- ```isBlank()```, ```strip()```
+- ```lines()``` for stream processing
+- ```repeat()``` for string repetition
+- ```transform()``` for string mapping
+
+### Optional API
+- ```isEmpty()```
+- ```orElseThrow()``` without parameters
+- ```stream()``` conversion
+
+### Foreign Function & Memory API
+- Native memory access
+- Direct buffer operations
+- Foreign function interfaces
+
+### Security
+- Modern crypto algorithms
+- Key encapsulation
+- TLS 1.3 support
+
+## Best Practices
+
+1. Use records for data transfer objects
+2. Prefer pattern matching for type checks
+3. Use text blocks for multi-line strings
+4. Leverage virtual threads for I/O operations
+5. Use var when type is clear
+6. Prefer collection factory methods
+7. Use structured concurrency for thread management
+8. Use modern HTTP client for web operations

@@ -87,7 +87,7 @@ class MessageHandlerTest {
         
         assertTrue(responseJson.has("result"));
         JsonNode resources = responseJson.get("result").get("resources");
-        assertNotNull(resources);
+        assertNotNull(resources, "Resources should not be null");
         assertEquals(1, resources.size());
         
         JsonNode resource = resources.get(0);
@@ -125,7 +125,7 @@ class MessageHandlerTest {
         
         assertTrue(responseJson.has("result"));
         JsonNode tools = responseJson.get("result").get("tools");
-        assertNotNull(tools);
+        assertNotNull(tools, "Tools should not be null");
         assertEquals(1, tools.size());
         
         JsonNode tool = tools.get(0);
@@ -149,7 +149,7 @@ class MessageHandlerTest {
         String response = getResponse();
         JsonNode responseJson = objectMapper.readTree(response);
         
-        assertTrue(responseJson.has("error"), "Response should have an error field");
+        assertTrue(responseJson.has("error"), "Response should have an error field for invalid method");
         assertEquals(ErrorCode.METHOD_NOT_FOUND, responseJson.get("error").get("code").asInt());
     }
     

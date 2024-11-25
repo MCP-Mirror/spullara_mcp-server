@@ -88,8 +88,11 @@ public class MessageHandler implements HttpHandler {
             return;
         }
 
+
+
+
         // Get session ID from header
-        String sessionId = request.get("sessionId").asText();
+        String sessionId = request.has("sessionId") ? request.get("sessionId").asText() : null;
 
         if (sessionId == null) {
             sendError(exchange, ErrorCode.INVALID_REQUEST, "Missing session ID", null);
@@ -106,7 +109,13 @@ public class MessageHandler implements HttpHandler {
         JsonNode response = handleMessage(request);
 
         // Send response
-        sendResponse(exchange, request.get("id").asText(), response);
+        if (response.has("error")) {
+            sendError(exchange, response.get("error").get("code").asInt(),
+                    response.get("error").get("message").asText(),
+                    response.get("error").get("data"));
+        } else {
+            sendResponse(exchange, request.get("id").asText(), response.get("result"));
+        }
     }
 
     private JsonNode handleMessage(JsonNode message) {

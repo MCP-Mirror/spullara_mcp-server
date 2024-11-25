@@ -8,6 +8,7 @@ import java.util.concurrent.CountDownLatch;
 public class SseEmitter {
     private final CountDownLatch latch = new CountDownLatch(1);
     private volatile OutputStream outputStream;
+    private final Object outputStreamLock = new Object();
     private volatile boolean closed = false;
 
     public void setOutputStream(OutputStream outputStream) {
@@ -37,7 +38,7 @@ public class SseEmitter {
         message.append("\n"); // Empty line to terminate the message
 
         // Write the message to the output stream
-        synchronized (outputStream) {
+        synchronized (outputStreamLock) {
             try {
                 outputStream.write(message.toString().getBytes(StandardCharsets.UTF_8));
                 outputStream.flush();
@@ -61,7 +62,7 @@ public class SseEmitter {
             throw new IllegalStateException("OutputStream not set");
         }
 
-        synchronized (outputStream) {
+        synchronized (outputStreamLock) {
             try {
                 String message = "retry: " + milliseconds + "\n\n";
                 outputStream.write(message.getBytes(StandardCharsets.UTF_8));

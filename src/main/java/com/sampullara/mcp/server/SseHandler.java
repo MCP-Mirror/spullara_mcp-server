@@ -45,7 +45,7 @@ public class SseHandler implements HttpHandler {
             session.emitter().emit("connected", String.format("{\"sessionId\": \"%s\"}", session.id()));
             
             // Send initial retry interval
-            session.emitter().emitRetry(3000); // 3 seconds retry interval
+            session.emitter().emitRetry(KEEP_ALIVE_INTERVAL);
             
             // Keep connection open until client disconnects or session expires
             session.emitter().await();

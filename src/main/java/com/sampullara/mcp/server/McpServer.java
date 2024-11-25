@@ -1,10 +1,11 @@
 package com.sampullara.mcp.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.net.httpserver.HttpServer;
 
 public class McpServer {
     private final HttpServer server;
@@ -25,7 +26,7 @@ public class McpServer {
         this.sessionManager = new McpSessionManager();
 
         // Create HTTP server with virtual threads
-        ThreadFactory factory = Thread.ofVirtual()
+        ThreadFactory serverFactory = Thread.ofVirtual()
                 .name("mcp-worker-", 0)
                 .factory();
 
@@ -33,7 +34,7 @@ public class McpServer {
                 new InetSocketAddress(port),
                 0
         );
-        this.server.setExecutor(Executors.newThreadPerTaskExecutor(factory));
+        this.server.setExecutor(Executors.newThreadPerTaskExecutor(serverFactory));
 
         // Set up endpoints
         setupEndpoints();
@@ -50,11 +51,20 @@ public class McpServer {
         ));
     }
 
+    public McpSessionManager getSessionManager() {
+        return sessionManager;
+    }
+
+    public McpCapabilities getCapabilities() {
+        return capabilities;
+    }
+
     public void start() {
         server.start();
     }
 
     public void stop() {
+        sessionManager.closeAllSessions();
         server.stop(0);
     }
 }

@@ -33,47 +33,80 @@ public class MessageHandler implements HttpHandler {
         tools.put(tool.name(), tool);
     }
 
+    // Add standard JSON-RPC error codes
+    public static final class ErrorCode {
+        public static final int PARSE_ERROR = -32700;
+        public static final int INVALID_REQUEST = -32600;
+        public static final int METHOD_NOT_FOUND = -32601;
+        public static final int INVALID_PARAMS = -32602;
+        public static final int INTERNAL_ERROR = -32603;
+    }
+
+    private ObjectNode createJsonRpcResponse(String id, JsonNode result) {
+        ObjectNode response = objectMapper.createObjectNode();
+        response.put("jsonrpc", "2.0");
+        response.put("id", id);
+        response.set("result", result);
+        return response;
+    }
+
+    private ObjectNode createJsonRpcError(String id, int code, String message, JsonNode data) {
+        ObjectNode response = objectMapper.createObjectNode();
+        response.put("jsonrpc", "2.0");
+        response.put("id", id);
+        
+        ObjectNode error = response.putObject("error");
+        error.put("code", code);
+        error.put("message", message);
+        if (data != null) {
+            error.set("data", data);
+        }
+        
+        return response;
+    }
+
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         if (!exchange.getRequestMethod().equals("POST")) {
-            exchange.sendResponseHeaders(405, -1);
+            sendError(exchange, ErrorCode.INVALID_REQUEST, "Method not allowed", null);
+            return;
+        }
+
+        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        JsonNode request;
+        
+        try {
+            request = objectMapper.readTree(body);
+        } catch (Exception e) {
+            sendError(exchange, ErrorCode.PARSE_ERROR, "Invalid JSON", null);
+            return;
+        }
+
+        // Validate JSON-RPC 2.0 request format
+        if (!isValidJsonRpcRequest(request)) {
+            sendError(exchange, ErrorCode.INVALID_REQUEST, "Invalid JSON-RPC 2.0 request", null);
             return;
         }
 
         // Get session ID from header
-        String sessionId = exchange.getRequestHeaders()
-                .getFirst("X-MCP-Session-ID");
+        String sessionId = request.get("sessionId").asText();
 
         if (sessionId == null) {
-            exchange.sendResponseHeaders(400, -1);
+            sendError(exchange, ErrorCode.INVALID_REQUEST, "Missing session ID", null);
             return;
         }
 
         var session = sessionManager.getSession(sessionId);
         if (session == null) {
-            exchange.sendResponseHeaders(404, -1);
+            sendError(exchange, ErrorCode.INVALID_REQUEST, "Invalid session ID", null);
             return;
         }
 
-        // Read request body
-        String requestBody = new String(
-                exchange.getRequestBody().readAllBytes(),
-                StandardCharsets.UTF_8
-        );
-
-        // Parse JSON-RPC message
-        var message = objectMapper.readTree(requestBody);
-
         // Handle message based on method
-        var response = handleMessage(message);
+        JsonNode response = handleMessage(request);
 
         // Send response
-        byte[] responseBytes = objectMapper.writeValueAsBytes(response);
-        exchange.getResponseHeaders().add("Content-Type", "application/json");
-        exchange.sendResponseHeaders(200, responseBytes.length);
-        try (var output = exchange.getResponseBody()) {
-            output.write(responseBytes);
-        }
+        sendResponse(exchange, request.get("id").asText(), response);
     }
 
     private JsonNode handleMessage(JsonNode message) {
@@ -112,16 +145,44 @@ public class MessageHandler implements HttpHandler {
                 }
                 default -> {
                     ObjectNode error = response.putObject("error");
-                    error.put("code", -32601);
+                    error.put("code", ErrorCode.METHOD_NOT_FOUND);
                     error.put("message", "Method not found");
                 }
             }
         } catch (Exception e) {
             ObjectNode error = response.putObject("error");
-            error.put("code", -32000);
+            error.put("code", ErrorCode.INTERNAL_ERROR);
             error.put("message", "Internal error: " + e.getMessage());
         }
 
         return response;
+    }
+
+    private boolean isValidJsonRpcRequest(JsonNode request) {
+        return request.isObject() &&
+               request.has("jsonrpc") &&
+               request.get("jsonrpc").asText().equals("2.0") &&
+               request.has("method") &&
+               request.has("id");
+    }
+
+    private void sendError(HttpExchange exchange, int code, String message, JsonNode data) throws IOException {
+        ObjectNode errorResponse = createJsonRpcError(null, code, message, data);
+        byte[] responseBytes = objectMapper.writeValueAsBytes(errorResponse);
+        
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.sendResponseHeaders(200, responseBytes.length);
+        exchange.getResponseBody().write(responseBytes);
+        exchange.getResponseBody().close();
+    }
+
+    private void sendResponse(HttpExchange exchange, String id, JsonNode result) throws IOException {
+        ObjectNode response = createJsonRpcResponse(id, result);
+        byte[] responseBytes = objectMapper.writeValueAsBytes(response);
+        
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.sendResponseHeaders(200, responseBytes.length);
+        exchange.getResponseBody().write(responseBytes);
+        exchange.getResponseBody().close();
     }
 }

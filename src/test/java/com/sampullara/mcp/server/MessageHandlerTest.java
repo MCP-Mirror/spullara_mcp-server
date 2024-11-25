@@ -42,17 +42,20 @@ class MessageHandlerTest {
     
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        objectMapper = new ObjectMapper();
-        handler = new MessageHandler(sessionManager, objectMapper);
-        headers = new Headers();
-        
-        // Setup common mocks
-        when(exchange.getRequestHeaders()).thenReturn(headers);
-        when(exchange.getResponseHeaders()).thenReturn(new Headers());
-        when(sessionManager.getSession(anyString())).thenReturn(
-            new McpSession("test-session", sseEmitter, System.currentTimeMillis())
-        );
+        try(var _ = MockitoAnnotations.openMocks(this)) {
+            objectMapper = new ObjectMapper();
+            handler = new MessageHandler(sessionManager, objectMapper);
+            headers = new Headers();
+
+            // Setup common mocks
+            when(exchange.getRequestHeaders()).thenReturn(headers);
+            when(exchange.getResponseHeaders()).thenReturn(new Headers());
+            when(sessionManager.getSession(anyString())).thenReturn(
+                    new McpSession("test-session", sseEmitter, System.currentTimeMillis())
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
     
     @Test
